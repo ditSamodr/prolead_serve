@@ -6,10 +6,17 @@ const handleResponse = (res, status, message, data = null) =>{
     });
 };
 
+const products = [];
+
 const getAllProduct = async(req, res, next)=>{
     try{
-        const products = await getAllProductService();
-        handleResponse(res, 200, "Product Fetched Succesfully", products);
+        const products =  await getAllProductService();
+       // handleResponse(res, 200, "Product Fetched Succesfully", products);
+        // return res.status(200).json({
+        //     success: true,
+        //     data: products
+        // });
+       res.json(products);
     }catch(err){
         next(err);
     }

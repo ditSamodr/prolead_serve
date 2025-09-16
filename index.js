@@ -19,47 +19,47 @@ let products = [];
 
 app.use(cors());
 
-app.get('/api', (req, res, next) => {
-    res.status(200).json({
-        success: true,
-        data: {
-            message: 'Hello world 1'
-        }
-    })
-});
+// app.get('/api', (req, res, next) => {
+//     res.status(200).json({
+//         success: true,
+//         data: {
+//             message: 'Hello world 1'
+//         }
+//     })
+// });
 
-app.get('/endpoint-2', (req, res, next) => {
-    res.status(200).json({
-        success: true,
-        data: {
-            message: 'Hello world 2'
-        }
-    })
-});
+// app.get('/endpoint-2', (req, res, next) => {
+//     res.status(200).json({
+//         success: true,
+//         data: {
+//             message: 'Hello world 2'
+//         }
+//     })
+// });
 
 
 app.use("/api", productRoute);
 
 // Get all products
-app.get('/api/products', async (req, res) => {
-  try {
-    const allProducts = await db.query("SELECT * FROM products ORDER BY id ASC");
-    res.json(allProducts.rows);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
+// app.get('/api/products', async (req, res) => {
+//   try {
+//     const allProducts = await db.query("SELECT * FROM products ORDER BY id ASC");
+//     res.json(allProducts.rows);
+//   } catch (err) {
+//     console.error(err.message);
+//     res.status(500).send('Server Error');
+//   }
+// });
 
-app.post('/api/products', async(req, res) => {
-    const newProduct = {
-        id: Date.now().toString(), // Simple unique ID
-        ...req.body
-    };
-    products.push(newProduct);
-    console.log('New product received:', newProduct);
-    res.status(201).json(newProduct); // Respond with the newly created product
-});
+// app.post('/api/products', async(req, res) => {
+//     const newProduct = {
+//         id: Date.now().toString(), // Simple unique ID
+//         ...req.body
+//     };
+//     products.push(newProduct);
+//     console.log('New product received:', newProduct);
+//     res.status(201).json(newProduct); // Respond with the newly created product
+// });
 
 
 const PORT = process.env.PORT || 5001;
