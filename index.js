@@ -84,23 +84,19 @@ const openai = new OpenAI({
 });
 
 app.post('/api/chat', async (req, res)=>{
-  const { message } = req.body;
+  const { messages } = req.body;
 
-  if(!message){
-    return res.status(400).json({ error: 'Message is Required '});
+  if(!messages || !Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: 'Messages array is required and cannot be empty.' });
   }
 
   try{
-    const { message } = req.body;
-
     const response = await openai.chat.completions.create({
       model: "gpt-4.1-nano",
-      messages: [{ role: "user", content: message}],
+      messages: messages,
     });
 
-    //res.json({ reply: response.choises[0].message.content });
     const reply = response.choices?.[0]?.message?.content || "No reply from AI";
-    
     res.json({ reply });
   }catch(error){
     console.error("Error calling OpenAI API: ", error);
