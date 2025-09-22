@@ -1,5 +1,5 @@
 const { createProductService, getAllProductService, updateProductService, deleteProductService } = require('../models/productModel.js');
-
+const logger = require('../config/logger.js');
 const handleResponse = (res, status, message, data = null) =>{
     res.status(status).json({
         status, message, data,
@@ -26,7 +26,9 @@ const createProduct = async(req, res, next)=>{
     const { title, price, sold, image } = req.body;
     try{
         const newProducts = await createProductService(title, price, sold, image);
-        handleResponse(res, 201, "Product Created Succesfully", newProducts)
+        //log
+        //logger.info(`Product Created: ${newProducts.title}`, { action: 'CREATE', productId: newProducts.id, details: newProducts });
+        handleResponse(res, 201, "Product Created Succesfully", newProducts);
     }catch(err){
         next(err);
     }

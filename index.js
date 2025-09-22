@@ -10,6 +10,7 @@ app.use(express.json());
 dotenv.config();
 const db = require('./src/db.js');
 const productRoute = require('./src/routes/productRoutes.js');
+const OpenAI = require('openai');
 
 let products = [];
 
@@ -19,52 +20,13 @@ let products = [];
 
 app.use(cors());
 
-// app.get('/api', (req, res, next) => {
-//     res.status(200).json({
-//         success: true,
-//         data: {
-//             message: 'Hello world 1'
-//         }
-//     })
-// });
-
-// app.get('/endpoint-2', (req, res, next) => {
-//     res.status(200).json({
-//         success: true,
-//         data: {
-//             message: 'Hello world 2'
-//         }
-//     })
-// });
-
-
 app.use("/api", productRoute);
-
-// Get all products
-// app.get('/api/products', async (req, res) => {
-//   try {
-//     const allProducts = await db.query("SELECT * FROM products ORDER BY id ASC");
-//     res.json(allProducts.rows);
-//   } catch (err) {
-//     console.error(err.message);
-//     res.status(500).send('Server Error');
-//   }
-// });
-
-// app.post('/api/products', async(req, res) => {
-//     const newProduct = {
-//         id: Date.now().toString(), // Simple unique ID
-//         ...req.body
-//     };
-//     products.push(newProduct);
-//     console.log('New product received:', newProduct);
-//     res.status(201).json(newProduct); // Respond with the newly created product
-// });
 
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, ()=> console.log(`server is running on port ${PORT}`));
 
+//DB connect test
 db.query('SELECT current_database()', (err, res) => {
   if (err) {
     console.error('Error connecting to the database', err);
@@ -86,3 +48,63 @@ async function connectAndQuery() {
 }
 
 connectAndQuery();
+//DB table connection test
+async function getUsers() {
+  try {
+    const res = await db.query('SELECT * FROM products');
+    console.log('✅ Users from the database:');
+    console.table(res.rows); 
+  } catch (err) {
+    console.error('❌ Error fetching users:', err.stack);
+  }
+}
+
+// Call the function to display the table contents
+getUsers();
+
+// const allowedOrigins = [
+//         'https://umbra-2.prolead.id',
+// ];
+
+// const corsOptions = {
+//   origin: (origin, callback) => {
+//     // If the request origin is in our allowed list, allow it
+//     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+//       callback(null, true);
+//     } else {
+//       callback(new Error('Not allowed by CORS'));
+//     }
+//   }
+// };
+
+//app.use(cors(corsOptions));
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+app.post('/api/chat', async (req, res)=>{
+  const { message } = req.body;
+
+  if(!message){
+    return res.status(400).json({ error: 'Message is Required '});
+  }
+
+  try{
+    const { message } = req.body;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4.1-nano",
+      messages: [{ role: "user", content: message}],
+    });
+
+    //res.json({ reply: response.choises[0].message.content });
+    const reply = response.choices?.[0]?.message?.content || "No reply from AI";
+    
+    res.json({ reply });
+  }catch(error){
+    console.error("Error calling OpenAI API: ", error);
+    res.status(500).json({ error: 'Failed to get response from AI. ' });    
+  }
+});
+
