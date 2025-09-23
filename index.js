@@ -83,20 +83,35 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-app.post('/api/chat', async (req, res)=>{
-  const { messages } = req.body;
+app.post('/api/session', async (req, res) => {
+  try{
+    const result = await query('INSERT INTO sessions DEFAULT VALUES RETURNING id');
+    const sessionId = result.rows[0].id;
+    res.json({ sessionId });
+  } catch (error){
+    console.error('Error creating new session: ', error);
+    res.status(500).json({ error: 'FAILED TO START NEW SESSION. '});
+  }
+})
 
-  if(!messages || !Array.isArray(messages) || messages.length === 0) {
+app.post('/api/chat', async (req, res)=>{
+  const { sessionId, messages } = req.body;
+
+  if(!sessionId || !messages || !Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: 'Messages array is required and cannot be empty.' });
   }
 
   try{
+    const userMessage = messages[messages.length -1];
+    await query('INSERT INTO messages(session_id, role, content) VALUES($1, $2, $3)', [sessionId, userMessage.role, userMessage.content]);
+
     const response = await openai.chat.completions.create({
       model: "gpt-4.1-nano",
       messages: messages,
     });
 
     const reply = response.choices?.[0]?.message?.content || "No reply from AI";
+    await query('INSERT INTO messages(session_id, role, content) VALUES($1, $2, $3)', [sessionId, 'assistant', reply]);
     res.json({ reply });
   }catch(error){
     console.error("Error calling OpenAI API: ", error);
