@@ -119,20 +119,49 @@ app.post('/api/chat', async (req, res)=>{
   }
 });
 
-app.get('/api/history', async (req, res) => {
+app.get('/api/sessions-summary', async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT
+        session_id,
+        COUNT(*) AS chat_count,
+        MAX(created_at) AS last_message_date,
+        (
+          SELECT content
+          FROM messages
+          WHERE session_id = m.session_id
+          ORDER BY created_at DESC
+          LIMIT 1
+        ) AS last_message
+      FROM messages m
+      GROUP BY session_id
+      ORDER BY last_message_date DESC
+    `);
+    res.json({ sessions: result.rows });
+  } catch (error) {
+    console.error('Error fetching session summaries: ', error);
+    res.status(500).json({ error: 'Failed to retrieve session summaries.' });
+  }
+});
+
+// A new endpoint to get messages for a specific session ID
+app.get('/api/session/:sessionId', async (req, res) => {
+  const { sessionId } = req.params;
   try {
     const result = await query(
-       `SELECT
+      `SELECT
          session_id,
          role,
          content,
          TO_CHAR(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS date
        FROM messages
-       ORDER BY session_id, created_at`
+       WHERE session_id = $1
+       ORDER BY created_at`,
+      [sessionId]
     );
     res.json({ messages: result.rows });
   } catch (error) {
-    console.error('Error fetching chat history: ', error);
-    res.status(500).json({ error: 'Failed to retrieve all chat history.' });
+    console.error('Error fetching chat history for session: ', error);
+    res.status(500).json({ error: 'Failed to retrieve chat history for this session.' });
   }
 });
