@@ -132,7 +132,14 @@ app.get('/api/sessions-summary', async (req, res) => {
           WHERE session_id = m.session_id
           ORDER BY created_at DESC
           LIMIT 1
-        ) AS last_message
+        ) AS last_message_content,
+        (
+          SELECT role
+          FROM messages
+          WHERE session_id = m.session_id
+          ORDER BY created_at DESC
+          LIMIT 1
+        ) AS last_message_role
       FROM messages m
       GROUP BY session_id
       ORDER BY last_message_date DESC
