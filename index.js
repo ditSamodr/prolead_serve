@@ -119,3 +119,20 @@ app.post('/api/chat', async (req, res)=>{
   }
 });
 
+app.get('/api/history', async (req, res) => {
+  try {
+    const result = await query(
+       `SELECT
+         session_id,
+         role,
+         content,
+         TO_CHAR(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS date
+       FROM messages
+       ORDER BY session_id, created_at`
+    );
+    res.json({ messages: result.rows });
+  } catch (error) {
+    console.error('Error fetching chat history: ', error);
+    res.status(500).json({ error: 'Failed to retrieve all chat history.' });
+  }
+});
