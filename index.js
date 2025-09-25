@@ -172,3 +172,65 @@ app.get('/api/session/:sessionId', async (req, res) => {
     res.status(500).json({ error: 'Failed to retrieve chat history for this session.' });
   }
 });
+
+app.get('/api/leads', async (req, res) => {
+  try {
+    // The table name is 'leads' and the data columns are 'lead_id', 'lead_name', etc.
+    const result = await query(`
+      SELECT lead_id as id, lead_name, lead_phone, lead_email, lead_address FROM leads`);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching leads:', error);
+    res.status(500).json({ error: 'Failed to retrieve leads.' });
+  }
+});
+
+app.post('/api/leads', async (req, res) => {
+  const { lead_name, lead_phone, lead_email, lead_address } = req.body;
+  try {
+    const result = await query(
+      `INSERT INTO leads (lead_name, lead_phone, lead_email, lead_address)
+      VALUES ($1, $2, $3, $4) RETURNING *`,
+      [lead_name, lead_phone, lead_email, lead_address]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating new lead:', error);
+    res.status(500).json({ error: 'Failed to create lead.' });
+  }
+});
+
+// New API endpoint to update an existing lead
+app.put('/api/leads/:id', async (req, res) => {
+  const { id } = req.params;
+  const { lead_name, lead_phone, lead_email, lead_address } = req.body;
+  try {
+    const result = await query(
+      `UPDATE leads SET lead_name = $1, lead_phone = $2, lead_email = $3, lead_address = $4
+      WHERE lead_id = $5 RETURNING *`,
+      [lead_name, lead_phone, lead_email, lead_address, id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Lead not found.' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating lead:', error);
+    res.status(500).json({ error: 'Failed to update lead.' });
+  }
+});
+
+// New API endpoint to delete a lead
+app.delete('/api/leads/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await query(`DELETE FROM leads WHERE lead_id = $1 RETURNING *`, [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Lead not found.' });
+    }
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting lead:', error);
+    res.status(500).json({ error: 'Failed to delete lead.' });
+  }
+});
