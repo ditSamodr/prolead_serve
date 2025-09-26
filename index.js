@@ -14,16 +14,9 @@ const OpenAI = require('openai');
 const { stringify } = require('csv-stringify');
 const dayjs = require('dayjs');
 
-let products = [];
-
-// app.get(/^\/(?!api).*/, (req, res) => 
-//     res.sendFile(path.join(__dirname, '../Client/dist/index.html'))
-// ); 
-
 app.use(cors());
 
 app.use("/api", productRoute);
-
 
 
 const PORT = process.env.PORT || 5001;
@@ -50,7 +43,7 @@ async function connectAndQuery() {
   }
 }
 
-connectAndQuery();
+//connectAndQuery();
 //DB table connection test
 async function getUsers() {
   try {
@@ -62,7 +55,7 @@ async function getUsers() {
   }
 }
 
-getUsers();
+//getUsers();
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -71,205 +64,9 @@ const chatRoutes = require('./src/routes/chatRoutes');
 const sessionRoutes = require('./src/routes/sessionRoutes');
 const leadsRoutes = require('./src/routes/leadsRoutes');
 
-// Mount Routes, passing necessary dependencies
-// Note: We use the base paths '/api' or specific subpaths
+app.use(express.text({ type: 'text/csv' }));
 app.use('/api', sessionRoutes({ query }));
 app.use('/api', chatRoutes({ openai, query }));
-// For leads, we also need dayjs and stringify for the export function
 app.use('/api', leadsRoutes({ query, dayjs, stringify }));
 
 app.listen(PORT, ()=> console.log(`server is running on port ${PORT}`));
-
-// app.post('/api/session', async (req, res) => {
-//   try{
-//     const result = await query('INSERT INTO sessions DEFAULT VALUES RETURNING id');
-//     const sessionId = result.rows[0].id;
-//     res.json({ sessionId });
-//   } catch (error){
-//     console.error('Error creating new session: ', error);
-//     res.status(500).json({ error: 'FAILED TO START NEW SESSION. '});
-//   }
-// })
-
-// app.post('/api/chat', async (req, res)=>{
-//   const { sessionId, messages } = req.body;
-
-//   if(!sessionId || !messages || !Array.isArray(messages) || messages.length === 0) {
-//       return res.status(400).json({ error: 'Messages array is required and cannot be empty.' });
-//   }
-
-//   try{
-//     const userMessage = messages[messages.length -1];
-//     await query('INSERT INTO messages(session_id, role, content) VALUES($1, $2, $3)', [sessionId, userMessage.role, userMessage.content]);
-
-//     const response = await openai.chat.completions.create({
-//       model: "gpt-4.1-nano",
-//       messages: messages,
-//     });
-
-//     const reply = response.choices?.[0]?.message?.content || "No reply from AI";
-//     await query('INSERT INTO messages(session_id, role, content) VALUES($1, $2, $3)', [sessionId, 'assistant', reply]);
-//     res.json({ reply });
-//   }catch(error){
-//     console.error("Error calling OpenAI API: ", error);
-//     res.status(500).json({ error: 'Failed to get response from AI. ' });    
-//   }
-// });
-
-// app.get('/api/sessions-summary', async (req, res) => {
-//   try {
-//     const result = await query(`
-//       SELECT
-//         session_id,
-//         COUNT(*) AS chat_count,
-//         MAX(created_at) AS last_message_date,
-//         (
-//           SELECT content
-//           FROM messages
-//           WHERE session_id = m.session_id
-//           ORDER BY created_at DESC
-//           LIMIT 1
-//         ) AS last_message_content,
-//         (
-//           SELECT role
-//           FROM messages
-//           WHERE session_id = m.session_id
-//           ORDER BY created_at DESC
-//           LIMIT 1
-//         ) AS last_message_role
-//       FROM messages m
-//       GROUP BY session_id
-//       ORDER BY last_message_date DESC
-//     `);
-//     res.json({ sessions: result.rows });
-//   } catch (error) {
-//     console.error('Error fetching session summaries: ', error);
-//     res.status(500).json({ error: 'Failed to retrieve session summaries.' });
-//   }
-// });
-
-// app.get('/api/session/:sessionId', async (req, res) => {
-//   const { sessionId } = req.params;
-//   try {
-//     const result = await query(
-//       `SELECT
-//          session_id,
-//          role,
-//          content,
-//          TO_CHAR(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS date
-//        FROM messages
-//        WHERE session_id = $1
-//        ORDER BY created_at`,
-//       [sessionId]
-//     );
-//     res.json({ messages: result.rows });
-//   } catch (error) {
-//     console.error('Error fetching chat history for session: ', error);
-//     res.status(500).json({ error: 'Failed to retrieve chat history for this session.' });
-//   }
-// });
-
-// app.get('/api/leads', async (req, res) => {
-//   try {
-//     // The table name is 'leads' and the data columns are 'lead_id', 'lead_name', etc.
-//     const result = await query(`
-//       SELECT lead_id as id, lead_name, lead_phone, lead_email, lead_address, lead_notes FROM leads`);
-//     res.json(result.rows);
-//   } catch (error) {
-//     console.error('Error fetching leads:', error);
-//     res.status(500).json({ error: 'Failed to retrieve leads.' });
-//   }
-// });
-
-// app.post('/api/leads', async (req, res) => {
-//   const { lead_name, lead_phone, lead_email, lead_address, lead_notes } = req.body;
-//   try {
-//     const result = await query(
-//       `INSERT INTO leads (lead_name, lead_phone, lead_email, lead_address, lead_notes)
-//       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-//       [lead_name, lead_phone, lead_email, lead_address, lead_notes]
-//     );
-//     res.status(201).json(result.rows[0]);
-//   } catch (error) {
-//     console.error('Error creating new lead:', error);
-//     res.status(500).json({ error: 'Failed to create lead.' });
-//   }
-// });
-
-// // New API endpoint to update an existing lead
-// app.put('/api/leads/:id', async (req, res) => {
-//   const { id } = req.params;
-//   const { lead_name, lead_phone, lead_email, lead_address, lead_notes } = req.body;
-//   try {
-//     const updated_at = new Date();
-//     const result = await query(
-//       `UPDATE leads SET 
-//       lead_name = $1,
-//       lead_phone = $2, lead_email = $3, lead_address = $4, lead_notes = $5, updated_at = $6
-//       WHERE lead_id = $7 RETURNING *`,
-//       [lead_name, lead_phone, lead_email, lead_address, lead_notes, updated_at, id]
-//     );
-//     if (result.rows.length === 0) {
-//       return res.status(404).json({ error: 'Lead not found.' });
-//     }
-//     res.json(result.rows[0]);
-//   } catch (error) {
-//     console.error('Error updating lead:', error);
-//     res.status(500).json({ error: 'Failed to update lead.' });
-//   }
-// });
-
-// // New API endpoint to delete a lead
-// app.delete('/api/leads/:id', async (req, res) => {
-//   const { id } = req.params;
-//   try {
-//     const result = await query(`DELETE FROM leads WHERE lead_id = $1 RETURNING *`, [id]);
-//     if (result.rows.length === 0) {
-//       return res.status(404).json({ error: 'Lead not found.' });
-//     }
-//     res.status(204).send();
-//   } catch (error) {
-//     console.error('Error deleting lead:', error);
-//     res.status(500).json({ error: 'Failed to delete lead.' });
-//   }
-// });
-
-// app.get('/api/leads/export', async (req, res) =>{
-//   try {
-//     const result = await query(`
-//       SELECT 
-//         lead_id, 
-//         lead_name, 
-//         lead_phone, 
-//         lead_email, 
-//         lead_address, 
-//         lead_notes,
-//         created_at,
-//         updated_at
-//       FROM leads`);
-//    // const leads = result.rows;
-
-//     const formattedLeads = result.rows.map(lead => ({
-//       ...lead,
-//       created_at: lead.created_at ? dayjs(lead.created_at).format('DD/MM/YYYY HH:mm:ss') : null,
-//       updated_at: lead.updated_at ? dayjs(lead.updated_at).format('DD/MM/YYYY HH:mm:ss') : null,
-//     }));
-
-//     const columns = [
-//       'lead_id', 'lead_name', 'lead_phone', 'lead_email', 'lead_address', 'lead_notes', 'created_at', 'updated_at'
-//     ];
-
-//     stringify(formattedLeads, { header: true, columns: columns }, (err, output) => {
-//       if(err){
-//         console.error('Error generating CSV', err);
-//         return res.status(500).json({ error:'Failed to generate CSV.' });
-//       }
-//       res.setHeader('Content-Type', 'text/csv');
-//       res.setHeader('Content-Disposition', 'attachment; filename="leads.csv"');
-//       res.send(output);
-//     });
-//   } catch (error) {
-//     console.error('Error exporting leads: ', error);
-//     res.status(500).json({ error: 'Failed to export leads.' });
-//   }
-// })

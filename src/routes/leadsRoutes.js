@@ -1,11 +1,15 @@
 // src/leadsRoute.js
 const express = require('express');
+const { route } = require('./productRoutes');
+const { parse } = require('csv-parse');
+const util = require('util');
+const parsePromise = util.promisify(parse);
 
 // This module exports a function that takes dependencies and returns the router
 module.exports = ({ query, dayjs, stringify }) => {
     const router = express.Router();
 
-    // GET /api/leads
+    // Read
     router.get('/leads', async (req, res) => {
         try {
             const result = await query(`
@@ -19,7 +23,7 @@ module.exports = ({ query, dayjs, stringify }) => {
         }
     });
 
-    // POST /api/leads
+    // Create
     router.post('/leads', async (req, res) => {
         const { lead_name, lead_phone, lead_email, lead_address, lead_notes } = req.body;
         try {
@@ -35,7 +39,7 @@ module.exports = ({ query, dayjs, stringify }) => {
         }
     });
 
-    // PUT /api/leads/:id
+    // Edit
     router.put('/leads/:id', async (req, res) => {
         const { id } = req.params;
         const { lead_name, lead_phone, lead_email, lead_address, lead_notes } = req.body;
@@ -58,7 +62,7 @@ module.exports = ({ query, dayjs, stringify }) => {
         }
     });
 
-    // DELETE /api/leads/:id
+    // Delete
     router.delete('/leads/:id', async (req, res) => {
         const { id } = req.params;
         try {
@@ -73,7 +77,7 @@ module.exports = ({ query, dayjs, stringify }) => {
         }
     });
 
-    // GET /api/leads/export
+    // Export CSV
     router.get('/leads/export', async (req, res) => {
         try {
             const result = await query(`
@@ -83,25 +87,18 @@ module.exports = ({ query, dayjs, stringify }) => {
                   lead_phone,
                   lead_email,
                   lead_address,
-                  lead_notes,
-                  created_at,
-                  updated_at
+                  lead_notes
                 FROM leads
             `);
 
-            const formattedLeads = result.rows.map(lead => ({
-                ...lead,
-                // Use the passed in dayjs for formatting
-                created_at: lead.created_at ? dayjs(lead.created_at).format('DD/MM/YYYY HH:mm:ss') : null,
-                updated_at: lead.updated_at ? dayjs(lead.updated_at).format('DD/MM/YYYY HH:mm:ss') : null,
-            }));
+            const leads = result.rows;
 
             const columns = [
-                'lead_id', 'lead_name', 'lead_phone', 'lead_email', 'lead_address', 'lead_notes', 'created_at', 'updated_at'
+                'lead_id', 'lead_name', 'lead_phone', 'lead_email', 'lead_address', 'lead_notes'
             ];
 
             // Use the passed in stringify for CSV generation
-            stringify(formattedLeads, { header: true, columns: columns }, (err, output) => {
+            stringify(leads, { header: true, columns: columns }, (err, output) => {
                 if (err) {
                     console.error('Error generating CSV', err);
                     return res.status(500).json({ error: 'Failed to generate CSV.' });
@@ -116,5 +113,38 @@ module.exports = ({ query, dayjs, stringify }) => {
         }
     });
 
+    // Import CSV
+    router.post('/leads/import', async (req, res) => {
+        const csvText = req.body;
+
+        if(!csvText || typeof csvText !== 'string'){
+            return res.status(400).json({ error: 'CSV data is missing or invalid' });
+        }
+
+        try {
+            const data = req.body;
+            const records = await parsePromise(csvText, {
+                columns: true,
+                skip_empty_lines: true
+            });
+
+            for (const record of records){
+                const { lead_name, lead_phone, lead_email, lead_address, lead_notes } = record;
+                //TODO check if phone already exist
+
+                await query(
+                    `INSERT INTO leads (lead_name, lead_phone, lead_email, lead_address, lead_notes)
+                    VALUES ($1, $2, $3, $4, $5)`,
+                [lead_name, lead_phone, lead_email, lead_address, lead_notes]
+                );
+            }
+
+            res.status(200).json({ message: 'Leads imported successfully.' });
+        } catch (error) {
+            console.error('Error importing leads: ', error);
+            res.status(500).json({ error: 'Failed to import leads. Check CSV format.', details: error.message });
+ 
+        }
+    })
     return router;
 };
