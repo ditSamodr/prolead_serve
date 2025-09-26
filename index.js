@@ -205,10 +205,13 @@ app.put('/api/leads/:id', async (req, res) => {
   const { id } = req.params;
   const { lead_name, lead_phone, lead_email, lead_address, lead_notes } = req.body;
   try {
+    const updated_at = new Date();
     const result = await query(
-      `UPDATE leads SET lead_name = $1, lead_phone = $2, lead_email = $3, lead_address = $4, lead_notes = $5
-      WHERE lead_id = $6 RETURNING *`,
-      [lead_name, lead_phone, lead_email, lead_address, lead_notes, id]
+      `UPDATE leads SET 
+      lead_name = $1,
+      lead_phone = $2, lead_email = $3, lead_address = $4, lead_notes = $5, updated_at = $6
+      WHERE lead_id = $7 RETURNING *`,
+      [lead_name, lead_phone, lead_email, lead_address, lead_notes, updated_at, id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Lead not found.' });
