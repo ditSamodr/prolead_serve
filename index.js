@@ -11,6 +11,8 @@ dotenv.config();
 const db = require('./src/db.js');
 const productRoute = require('./src/routes/productRoutes.js');
 const OpenAI = require('openai');
+const { stringify } = require('csv-stringify');
+const dayjs = require('dayjs');
 
 let products = [];
 
@@ -237,3 +239,43 @@ app.delete('/api/leads/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to delete lead.' });
   }
 });
+
+app.get('/api/leads/export', async (req, res) =>{
+  try {
+    const result = await query(`
+      SELECT 
+        lead_id, 
+        lead_name, 
+        lead_phone, 
+        lead_email, 
+        lead_address, 
+        lead_notes,
+        created_at,
+        updated_at
+      FROM leads`);
+   // const leads = result.rows;
+
+    const formattedLeads = result.rows.map(lead => ({
+      ...lead,
+      created_at: lead.created_at ? dayjs(lead.created_at).format('DD/MM/YYYY HH:mm:ss') : null,
+      updated_at: lead.updated_at ? dayjs(lead.updated_at).format('DD/MM/YYYY HH:mm:ss') : null,
+    }));
+
+    const columns = [
+      'lead_id', 'lead_name', 'lead_phone', 'lead_email', 'lead_address', 'lead_notes', 'created_at', 'updated_at'
+    ];
+
+    stringify(formattedLeads, { header: true, columns: columns }, (err, output) => {
+      if(err){
+        console.error('Error generating CSV', err);
+        return res.status(500).json({ error:'Failed to generate CSV.' });
+      }
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="leads.csv"');
+      res.send(output);
+    });
+  } catch (error) {
+    console.error('Error exporting leads: ', error);
+    res.status(500).json({ error: 'Failed to export leads.' });
+  }
+})
