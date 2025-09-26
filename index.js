@@ -177,7 +177,7 @@ app.get('/api/leads', async (req, res) => {
   try {
     // The table name is 'leads' and the data columns are 'lead_id', 'lead_name', etc.
     const result = await query(`
-      SELECT lead_id as id, lead_name, lead_phone, lead_email, lead_address FROM leads`);
+      SELECT lead_id as id, lead_name, lead_phone, lead_email, lead_address, lead_notes FROM leads`);
     res.json(result.rows);
   } catch (error) {
     console.error('Error fetching leads:', error);
@@ -186,12 +186,12 @@ app.get('/api/leads', async (req, res) => {
 });
 
 app.post('/api/leads', async (req, res) => {
-  const { lead_name, lead_phone, lead_email, lead_address } = req.body;
+  const { lead_name, lead_phone, lead_email, lead_address, lead_notes } = req.body;
   try {
     const result = await query(
-      `INSERT INTO leads (lead_name, lead_phone, lead_email, lead_address)
-      VALUES ($1, $2, $3, $4) RETURNING *`,
-      [lead_name, lead_phone, lead_email, lead_address]
+      `INSERT INTO leads (lead_name, lead_phone, lead_email, lead_address, lead_notes)
+      VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [lead_name, lead_phone, lead_email, lead_address, lead_notes]
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -203,12 +203,12 @@ app.post('/api/leads', async (req, res) => {
 // New API endpoint to update an existing lead
 app.put('/api/leads/:id', async (req, res) => {
   const { id } = req.params;
-  const { lead_name, lead_phone, lead_email, lead_address } = req.body;
+  const { lead_name, lead_phone, lead_email, lead_address, lead_notes } = req.body;
   try {
     const result = await query(
-      `UPDATE leads SET lead_name = $1, lead_phone = $2, lead_email = $3, lead_address = $4
-      WHERE lead_id = $5 RETURNING *`,
-      [lead_name, lead_phone, lead_email, lead_address, id]
+      `UPDATE leads SET lead_name = $1, lead_phone = $2, lead_email = $3, lead_address = $4, lead_notes = $5
+      WHERE lead_id = $6 RETURNING *`,
+      [lead_name, lead_phone, lead_email, lead_address, lead_notes, id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Lead not found.' });
