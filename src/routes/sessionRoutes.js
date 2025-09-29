@@ -1,11 +1,9 @@
-// src/sessionRoute.js
 const express = require('express');
 
-// This module exports a function that takes dependencies and returns the router
 module.exports = ({ query }) => {
     const router = express.Router();
 
-    // POST /api/session (Create new session)
+    // New Session
     router.post('/session', async (req, res) => {
         try {
             const result = await query('INSERT INTO sessions DEFAULT VALUES RETURNING id');
@@ -17,7 +15,7 @@ module.exports = ({ query }) => {
         }
     });
 
-    // GET /api/sessions-summary
+    // Get Sessions
     router.get('/sessions-summary', async (req, res) => {
         try {
             const result = await query(`
@@ -50,7 +48,7 @@ module.exports = ({ query }) => {
         }
     });
 
-    // GET /api/session/:sessionId (Get messages for a specific session)
+    // Get Sessions from id
     router.get('/session/:sessionId', async (req, res) => {
         const { sessionId } = req.params;
         try {

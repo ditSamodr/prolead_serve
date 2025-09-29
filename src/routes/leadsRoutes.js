@@ -1,11 +1,9 @@
-// src/leadsRoute.js
 const express = require('express');
 const { route } = require('./productRoutes');
 const { parse } = require('csv-parse');
 const util = require('util');
 const parsePromise = util.promisify(parse);
 
-// This module exports a function that takes dependencies and returns the router
 module.exports = ({ query, dayjs, stringify }) => {
     const router = express.Router();
 
@@ -132,11 +130,35 @@ module.exports = ({ query, dayjs, stringify }) => {
                 const { lead_name, lead_phone, lead_email, lead_address, lead_notes } = record;
                 //TODO check if phone already exist
 
-                await query(
-                    `INSERT INTO leads (lead_name, lead_phone, lead_email, lead_address, lead_notes)
-                    VALUES ($1, $2, $3, $4, $5)`,
-                [lead_name, lead_phone, lead_email, lead_address, lead_notes]
-                );
+                const existingData = await query(
+                    `SELECT lead_id FROM leads WHERE lead_phone = $1 OR lead_email = $2`,
+                    [lead_phone || null, lead_email || null]
+                )
+
+                const existingLead = existingData.rows[0];
+                const updated_at = new Date();
+                
+                if(existingLead){
+                    await query(
+                        `UPDATE leads SET 
+                            lead_name = $1, 
+                            lead_phone = $2,  
+                            lead_email = $3, 
+                            lead_address = $4, 
+                            lead_notes = $5,
+                            updated_at = $6
+                        WHERE lead_id = $7`,
+                        [lead_name, lead_phone, lead_email, lead_address, lead_notes, updated_at, existingLead.lead_id]
+                    );
+                }
+
+                else{
+                    await query(
+                        `INSERT INTO leads (lead_name, lead_phone, lead_email, lead_address, lead_notes)
+                        VALUES ($1, $2, $3, $4, $5)`,
+                        [lead_name, lead_phone, lead_email, lead_address, lead_notes]
+                    );
+                }
             }
 
             res.status(200).json({ message: 'Leads imported successfully.' });

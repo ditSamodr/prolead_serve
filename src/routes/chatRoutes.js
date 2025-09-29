@@ -1,7 +1,5 @@
-// src/chatRoute.js
 const express = require('express');
 
-// This module exports a function that takes dependencies and returns the router
 module.exports = ({ openai, query }) => {
     const router = express.Router();
 
